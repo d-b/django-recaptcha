@@ -4,6 +4,8 @@ if django.VERSION[1] >= 5:
 else:
     from django.utils import simplejson as json
 
+import codecs
+
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -101,8 +103,8 @@ def submit(recaptcha_challenge_field,
 
     if getattr(settings, "NOCAPTCHA", False):
         params = urlencode({
-            'secret': want_bytes(private_key), 
-            'response': want_bytes(recaptcha_response_field), 
+            'secret': want_bytes(private_key),
+            'response': want_bytes(recaptcha_response_field),
             'remoteip': want_bytes(remoteip),
         })
     else:
@@ -135,7 +137,8 @@ def submit(recaptcha_challenge_field,
 
     httpresp = urlopen(req)
     if getattr(settings, "NOCAPTCHA", False):
-        data = json.load(httpresp)
+        reader = codecs.getreader('utf-8')
+        data = json.load(reader(httpresp))
         return_code = data['success']
         return_values = [return_code, None]
         if return_code:
@@ -147,9 +150,6 @@ def submit(recaptcha_challenge_field,
         return_code = return_values[0]
 
     httpresp.close()
-
-    if not PY2:
-        return_code = return_code.decode('utf-8')
 
     if (return_code == "true"):
         return RecaptchaResponse(is_valid=True)
